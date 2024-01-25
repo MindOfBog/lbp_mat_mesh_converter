@@ -1,0 +1,188 @@
+<!DOCTYPE html>
+<html>
+    <head>
+        <link rel="icon" href="images/icon.png" type="image/icon type">
+        <title>LBP Material mesh converter</title>
+        <link rel="stylesheet" href="https://fonts.googleapis.com/css?family=Ubuntu">
+        <style>
+        body {
+            font-family: "Ubuntu", sans-serif;
+            background-color: #292929;
+            color: #a8a8a8;
+        }
+        a:link { 
+            text-decoration: none; 
+            color: #9538ff;
+        } 
+        a:visited { 
+            text-decoration: none; 
+            color: #9538ff;
+        } 
+        a:hover { 
+            text-decoration: none; 
+            color: #ac64ff;
+        } 
+        a:active { 
+            text-decoration: none; 
+            color: #ac64ff;
+        }
+        </style>
+        <script>
+
+        var name = "out";
+
+        function doEdit(input)
+        {
+            var text = input;
+            var lines = text.match(/[^\r\n]+/g);
+
+            var vertices = [];
+            var triangles = [];
+
+            var tri = [];
+            var ind = 0;
+
+            for(var i = 0; i < lines.length; i++)
+            {
+                var args = lines[i].split(", ");
+                var VTX = args[0];
+                var IDX = args[1];
+                var gl_PositionX = args[2];
+                var gl_PositionY = args[3];
+                var gl_PositionZ = args[4];
+                var gl_PointSize = args[5];
+
+                if(isNumeric(IDX))
+                {
+                    vertices[IDX] = [-parseFloat(gl_PositionX) * 1.77777777777777, -parseFloat(gl_PositionY), parseFloat(gl_PositionZ)];
+
+                    tri[ind] = IDX;
+                    ind++;
+                }
+                else
+                {
+                    triangles[triangles.length] = tri;
+                    tri = [];
+                    ind = 0;
+                }
+            }
+
+            var output = "";
+
+            for(var i = 0; i < vertices.length; i++)
+            {
+                output += "v " + vertices[i][0] + " " + vertices[i][1] + " " + vertices[i][2] + "\n";
+            }
+
+            for(var i = 0; i < triangles.length; i++)
+            {
+                var tria = triangles[i];
+
+                if(tria.length == 3)
+                {
+                    output += "f " + (parseFloat(tria[0]) + 1) + " " + (parseFloat(tria[1]) + 1) + " " + (parseFloat(tria[2]) + 1) + "\n";
+                }
+                else if(tria.length > 3)
+                {
+                    for(var j = 2; j < tria.length; j++)
+                    {
+                        output += "f " + (parseFloat(tria[j - 2]) + 1) + " " + (parseFloat(tria[j - 1]) + 1) + " " + (parseFloat(tria[j]) + 1) + "\n";
+                    }
+                }
+                
+            }
+
+            var blob = new Blob([output], {type: "text/plain"});
+            var url = window.URL.createObjectURL(blob);
+            var a = document.createElement("a");
+            a.href = url;
+
+            if(name.endsWith(".csv"))
+                name = name.substring(0, name.length - 4);
+
+            a.download = name + ".obj";
+            a.click();
+        }
+
+        function isNumeric(str) {
+        if (typeof str != "string") 
+            return false;
+        return !isNaN(str) && !isNaN(parseFloat(str));
+        }
+
+        function importData() {
+            let reader = new FileReader();
+            let input = document.getElementById("files");
+            reader.addEventListener(
+                "load",
+                () => {
+                    doEdit(reader.result);
+                    input.value = '';
+                },
+                false,
+            );
+
+            let files = Array.from(input.files);
+            for(let i = 0; i < files.length; i++)
+            {
+                reader.readAsText(files[i]);
+                name = files[i].name;
+            }
+        }
+        </script>
+    </head>
+    <body>
+        <h1>LBP Material mesh converter</h1>
+        <input id="files" type="file" accept=".csv" onchange ="importData()" />
+        <br>
+        <div style="width:800px; display:inline-table;">
+            <p>
+                <h2>Usage:</h2>
+                Tools needed:
+                <ul>
+                    <li><a href="https://renderdoc.org" target="_blank">RenderDoc</a></li>
+                    <li><a href="https://rpcs3.net" target="_blank">RPCS3</a></li>
+                    <li>3D modelling software (e.g. <a href="https://www.blender.org" target="_blank">Blender</a>)</li>
+                </ul>
+                <p>
+                    (<a style="font-weight: bold;">IMPORTANT</a>: I was not able to get it working with OpenGL, so I recommend using Vulkan in RPCS3)
+                </p>
+                Open RenderDoc, navigate to the "Launch Application" tab and select your RPCS3.exe file and click the Launch button. RPCS3 should now be open, launch the LBP game of your choice, you should now see a "Capturing Vulkan..." overlay in the top left, open a level and create or find the shape you need.
+                <p>
+                    Next I will recommend going into front view and centering the mesh on your screen, as we are pulling the mesh from the VS output, which means it will be skewed by the projection and in front view it will only be skewed in the depth rather than horizontally or vertically.
+                </p>
+                <img src="images/shape.png" width="255" height="200" /><img src="images/shape frontview.png" width="204" height="200" />
+                <br>
+                <p>
+                Now press the capture button to capture the frame. A new entry should now appear in RenderDoc, double click it to load it.
+                </p>
+                <img src="images/renderdoc capture.png" width="290" height="200" />
+                <br>
+                <p>
+                Now click the "Texture Viewer" tab and focus on the timeline at the top, start opening the different render passes, and click through the steps until you see the step where your material pops in, make sure the previous step is missing your material. 
+                <br>
+                (I recommend you do this in an empty level with only the shape you want to rip in it)
+                </p>
+                <img src="images/timeline1.png" width="393" height="200" /><img src="images/timeline2.png" width="384" height="200" />
+                <br>
+                <p>
+                Navigate to the "Mesh Viewer" tab, you can now select the "VS Out" tab in the "Preview" section, to view a wireframe version of the mesh. If you see the mesh there, right click the VS Out table, that contains all the model data (i.e. VTX, ITX, gl_Position, etc.), and export as CSV.
+                </p>
+                <img src="images/vs out.png" width="331" height="200" />
+                <br>
+                <p>
+                Scroll to the top of this page, drag and drop the CSV file into the choose file button (or click it and select manually). This should automatically download a generated .obj file. You can now import this into blender. Now like most lbp related blendering, the model will be insanely large, so increase your View clip start and end.
+                </p>
+                <img src="images/z.png" width="214" height="200" />
+                <br>
+                <p>
+                Last but not least, the thickness of the mesh should be completely destroyed because of needing to go into front view to keep the rest of the model in alignment. This unfortunately isn't fixable by putting in a specific value, you will have to approximate the original thickness by manually scaling in the Y direction.
+                </p>
+                <img src="images/thin.png" width="137" height="200" /><img src="images/thick.png" width="182" height="200" />
+                <br>
+                <p>
+                Once that is done you can resize it to whatever size you need it in and use it freely. You will still have to create custom UVs, as the UVs are not provided in the CSV.
+                </p>
+        </div>
+    </body>
+</html>
