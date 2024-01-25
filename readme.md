@@ -6,6 +6,6 @@ How to use:
 - further instructions included in the page
 
 Or:
-- extract zip file
+- download index.html and images folder
 - open index.html in browser
 - further instructions included in the page
