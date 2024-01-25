@@ -1,4 +1,5 @@
-### LBP Material mesh converter
+### LBP Material mesh converter 
+<img src="https://raw.githubusercontent.com/MindOfBog/lbp_mat_mesh_converter/main/images/icon.png" height="150px"/>
 A browser based tool that can rip material shapes from LBP using RPCS3 and RenderDoc.
 
 How to use:
